@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动配置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .modal-dialog {
+            max-width: 900px;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .form-label.required:after {
+            content: '*';
+            color: #f5222d;
+            margin-left: 2px;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+        }
+        .is-invalid {
+            border-color: #f5222d !important;
+            box-shadow: 0 0 0 0.2rem rgba(245,34,45,.1) !important;
+        }
+        .invalid-feedback {
+            display: block;
+            color: #f5222d;
+            font-size: 13px;
+        }
+        .container {
+            padding: 50px 0;
+        }
+        .activity-type-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .activity-type-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 0 10px rgba(13, 110, 253, 0.1);
+        }
+        .activity-type-card.active {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex" style="min-height:100vh;background:#f7fbfa;">
+        <!-- 侧边栏 -->
+        <div style="width:220px;background:#f3f8fa;padding:32px 0 0 0;">
+            <div style="font-weight:bold;font-size:20px;color:#2584ff;padding-left:32px;margin-bottom:40px;">运营触达系统</div>
+            <ul class="nav flex-column" style="font-size:16px;">
+                <li class="nav-item"><a class="nav-link text-dark" href="#">控制台</a></li>
+                <li class="nav-item"><a class="nav-link text-dark" href="#">Banner管理</a></li>
+                <li class="nav-item"><a class="nav-link active" style="color:#2584ff;font-weight:bold;background:rgba(37,132,255,0.08);" href="#">活动管理</a></li>
+                <li class="nav-item"><a class="nav-link text-dark" href="#">Push管理</a></li>
+                <li class="nav-item"><a class="nav-link text-dark" href="#">短信管理</a></li>
+                <li class="nav-item"><a class="nav-link text-dark" href="#">Deeplink生成器</a></li>
+                <li class="nav-item"><a class="nav-link text-dark" href="#">人群包管理</a></li>
+            </ul>
+        </div>
+        <!-- 主内容区 -->
+        <div class="flex-grow-1" style="padding:40px 0 0 0;">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 style="font-weight:bold;">活动管理</h3>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#activityTypeModal">
+                        + 新建活动
+                    </button>
+                </div>
+                <form class="row g-3 align-items-end mb-3" id="filterForm">
+                    <div class="col-auto">
+                        <label class="form-label">ID</label>
+                        <input type="text" class="form-control" id="filterId" placeholder="请输入ID">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">活动名称</label>
+                        <input type="text" class="form-control" id="filterTitle" placeholder="请输入活动名称">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">活动时间</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" id="filterTimeStart">
+                            <span class="input-group-text">至</span>
+                            <input type="date" class="form-control" id="filterTimeEnd">
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">活动状态</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">全部</option>
+                            <option value="待上架">待上架</option>
+                            <option value="上架">上架</option>
+                            <option value="下架">下架</option>
+                            <option value="上架待开始">上架待开始</option>
+                            <option value="上架进行中">上架进行中</option>
+                            <option value="上架已过期">上架已过期</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-outline-primary" id="filterBtn">搜索</button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" id="resetFilterBtn">重置</button>
+                    </div>
+                </form>
+                <div class="bg-white rounded shadow-sm p-4">
+                    <table class="table align-middle mb-0" id="activityTable">
+                        <thead>
+                            <tr style="background:#f7fbfa;">
+                                <th style="width:80px;">ID</th>
+                                <th>活动标题</th>
+                                <th>活动类型</th>
+                                <th>用户配置</th>
+                                <th>投放渠道</th>
+                                <th>活动时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="activityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">活动配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="activityForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">活动名称</label>
+                                    <input type="text" class="form-control" id="activityTitle" placeholder="请输入活动名称，最多15字" maxlength="15" required>
+                                    <div class="invalid-feedback" id="invalidTitle"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">活动人群</label>
+                                    <select class="form-select" required>
+                                        <option value="all">全部用户</option>
+                                        <option value="nonEnterprise">非企业用户</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">路由字段</label>
+                                    <input type="text" class="form-control" id="activityRoute" placeholder="请输入英文路由，最多20字" maxlength="20" required>
+                                    <div class="invalid-feedback" id="invalidRoute"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">渠道</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="web" id="web">
+                                        <label class="form-check-label" for="web">Web</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="ios" id="ios">
+                                        <label class="form-check-label" for="ios">iOS</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="android" id="android">
+                                        <label class="form-check-label" for="android">Android</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="miniprogram" id="miniprogram">
+                                        <label class="form-check-label" for="miniprogram">小程序</label>
+                                    </div>
+                                    <div class="invalid-feedback" id="invalidChannels"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">活动时间</label>
+                                    <div class="input-group">
+                                        <input type="datetime-local" class="form-control" required>
+                                        <span class="input-group-text">至</span>
+                                        <input type="datetime-local" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">落地页物料配置</label>
+                                    <div class="upload-area" id="landingUpload">
+                                        <i class="bi bi-cloud-upload"></i>
+                                        <p>点击或拖拽文件上传</p>
+                                        <input type="file" multiple class="d-none" id="landingFile">
+                                    </div>
+                                    <div class="invalid-feedback" id="invalidLanding"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">弹窗物料配置</label>
+                                    <div class="upload-area" id="popupUpload">
+                                        <i class="bi bi-cloud-upload"></i>
+                                        <p>点击或拖拽文件上传</p>
+                                        <input type="file" class="d-none" id="popupFile">
+                                    </div>
+                                    <div class="invalid-feedback" id="invalidPopup"></div>
+                                </div>
+                                <div class="mb-3" id="shareConfig" style="display:none;">
+                                    <label class="form-label">分享页配置</label>
+                                    <div class="upload-area">
+                                        <i class="bi bi-cloud-upload"></i>
+                                        <p>点击或拖拽文件上传</p>
+                                        <input type="file" class="d-none">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">活动规则</label>
+                                    <textarea class="form-control" rows="4" placeholder="请输入活动规则，最多2000字" maxlength="2000" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <!-- 奖励配置区 -->
+                        <div class="mb-3">
+                            <label class="form-label required">奖励配置</label>
+                            <select class="form-select mb-3" id="rewardSelect">
+                                <option value="60蝉豆">60蝉豆</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">组件样式</label>
+                            <select class="form-select mb-3" id="componentStyle">
+                                <option value="领取按钮">领取按钮</option>
+                            </select>
+                            <div id="buttonConfig" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label required">按钮文案</label>
+                                    <input type="text" class="form-control" id="buttonText" placeholder="请输入按钮文案">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">按钮物料配置</label>
+                                    <div class="upload-area" id="buttonUpload">
+                                        <i class="bi bi-cloud-upload"></i>
+                                        <p>点击或拖拽文件上传</p>
+                                        <input type="file" class="d-none" id="buttonFile">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">领取规则</label>
+                            <select class="form-select" id="claimRule">
+                                <option value="符合条件用户点击领取">符合条件用户点击领取</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认弹窗 -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">操作确认</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="confirmModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">否</button>
+                    <button type="button" class="btn btn-primary" id="confirmModalYes">是</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 活动类型选择弹窗 -->
+    <div class="modal fade" id="activityTypeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">选择活动类型</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="activity-type-card active" onclick="selectActivityType('reward')">
+                        <h5>奖励领取落地页</h5>
+                        <p class="text-muted mb-0">用户可直接领取奖励的活动页面</p>
+                    </div>
+                    <div class="activity-type-card" onclick="selectActivityType('checkin')">
+                        <h5>签到活动</h5>
+                        <p class="text-muted mb-0">用户每日签到获取奖励的活动</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="confirmActivityType()">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 文件上传区域点击事件
+        document.querySelectorAll('.upload-area').forEach(area => {
+            area.addEventListener('click', function() {
+                this.querySelector('input[type="file"]').click();
+            });
+        });
+
+        // 文件拖拽上传
+        document.querySelectorAll('.upload-area').forEach(area => {
+            area.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#0d6efd';
+            });
+
+            area.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#ddd';
+            });
+
+            area.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#ddd';
+                const files = e.dataTransfer.files;
+                this.querySelector('input[type="file"]').files = files;
+            });
+        });
+
+        // 1. 选择渠道为小程序后才展示分享页配置
+        document.querySelectorAll('input[type=checkbox][value=miniprogram]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const checked = this.checked;
+                document.getElementById('shareConfig').style.display = checked ? '' : 'none';
+            });
+        });
+
+        // 3. 组件样式下拉单选逻辑（如需联动可扩展）
+        // 4. 活动类型动态奖励配置
+        const rewardConfigArea = document.getElementById('rewardConfigArea');
+        const typeLottery = document.getElementById('type_lottery');
+        const typeCheckin = document.getElementById('type_checkin');
+
+        function renderRewardConfig() {
+            let html = '';
+            // 签到区块
+            if(typeCheckin.checked) {
+                html += `<div class="mb-3 p-3 border rounded bg-light">
+                    <div class="mb-2"><b>签到配置</b></div>
+                    <div class="mb-2"><label class="form-label">奖励配置</label><div id="checkinRewards"></div><button type="button" class="btn btn-outline-primary btn-sm" id="addCheckinReward">添加签到奖励</button></div>
+                    <div class='mb-2'><label class='form-label'>组件样式</label><select class='form-select' id='checkinComponentStyle'><option value='checkinBtn'>签到按钮</option><option value='lotteryBtn'>抽奖按钮</option></select></div>
+                    <div class='mb-2'><label class='form-label'>规则配置</label><select class='form-select' id='checkinRule'><option value='连续签到'>连续签到</option><option value='累计签到'>累计签到</option></select></div>
+                </div>`;
+            }
+            // 抽奖区块
+            if(typeLottery.checked) {
+                html += `<div class="mb-3 p-3 border rounded bg-light">
+                    <div class="mb-2"><b>抽奖转盘配置</b></div>
+                    <div class="mb-2"><label class="form-label">奖励配置</label><div id="lotteryRewards"></div><button type="button" class="btn btn-outline-primary btn-sm" id="addLotteryReward">添加抽奖奖励</button></div>
+                    <div class='mb-2'><label class='form-label'>组件样式</label><select class='form-select' id='lotteryComponentStyle'><option value='lottery'>转盘</option><option value='grid'>九宫格</option><option value='slot'>老虎机</option></select></div>
+                    <div class='mb-2'><label class='form-label'>规则配置</label><select class='form-select' id='lotteryRule'><option value='完成视频制作'>完成视频制作</option></select></div>
+                </div>`;
+            }
+            // 裂变区块
+            const typeFission = document.getElementById('type_fission');
+            if(typeFission && typeFission.checked) {
+                html += `<div class="mb-3 p-3 border rounded bg-light">
+                    <div class="mb-2"><b>裂变配置</b></div>
+                    <div class='mb-2'><label class='form-label'>组件样式</label><select class='form-select' id='fissionComponentStyle'><option value='fissionInvite'>裂变邀请</option></select></div>
+                    <div class='mb-2'><label class='form-label'>规则配置</label><select class='form-select' id='fissionRule'><option value='邀请且首次客户端成功'>邀请且首次客户端成功</option></select></div>
+                    <div class='mb-2'><label class='form-label'>奖励配置</label>
+                        <div class='row g-2 align-items-center'>
+                            <div class='col'>
+                                <select class='form-select' id='fissionSku'>
+                                    <option value='66蝉豆'>66蝉豆</option>
+                                    <option value='128蝉豆'>128蝉豆</option>
+                                    <option value='3天专业版会员'>3天专业版会员</option>
+                                    <option value='30天专业版会员'>30天专业版会员</option>
+                                </select>
+                            </div>
+                            <div class='col'>
+                                <select class='form-select' id='fissionGrantRule'>
+                                    <option value='每月最多领取10次'>每月最多领取10次</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            rewardConfigArea.innerHTML = html;
+            if(typeCheckin.checked) renderCheckinRewards();
+            if(typeLottery.checked) renderLotteryRewards();
+        }
+
+        // 签到奖励数据
+        let checkinRewards = [{sku:'',days:''}];
+        function renderCheckinRewards() {
+            const container = document.getElementById('checkinRewards');
+            if(!container) return;
+            let html = '';
+            checkinRewards.forEach((item, idx) => {
+                html += `<div class="row g-2 align-items-center mb-2">
+                    <div class="col">
+                        <select class="form-select" onchange="checkinRewards[${idx}].sku=this.value">
+                            <option value="">请选择奖励</option>
+                            <option value="66蝉豆" ${item.sku==='66蝉豆'?'selected':''}>66蝉豆</option>
+                            <option value="128蝉豆" ${item.sku==='128蝉豆'?'selected':''}>128蝉豆</option>
+                            <option value="3天专业版会员" ${item.sku==='3天专业版会员'?'selected':''}>3天专业版会员</option>
+                            <option value="30天专业版会员" ${item.sku==='30天专业版会员'?'selected':''}>30天专业版会员</option>
+                        </select>
+                    </div>
+                    <div class="col"><input type="text" class="form-control" placeholder="签到天数" value="${item.days}" onchange="checkinRewards[${idx}].days=this.value"></div>
+                    <div class="col-auto">${checkinRewards.length>1?`<button type=\"button\" class=\"btn btn-danger btn-sm\" onclick=\"removeCheckinReward(${idx})\">删除</button>`:''}</div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+        window.removeCheckinReward = function(idx) {
+            checkinRewards.splice(idx,1);
+            renderCheckinRewards();
+        }
+        document.addEventListener('click', function(e){
+            if(e.target && e.target.id==='addCheckinReward'){
+                if(checkinRewards.length<6){
+                    checkinRewards.push({sku:'',days:''});
+                    renderCheckinRewards();
+                }
+            }
+        });
+
+        // 抽奖奖励数据
+        let lotteryRewards = [{sku:'',prob:'',count:''}];
+        function renderLotteryRewards() {
+            const container = document.getElementById('lotteryRewards');
+            if(!container) return;
+            let html = '';
+            lotteryRewards.forEach((item, idx) => {
+                html += `<div class="row g-2 align-items-center mb-2">
+                    <div class="col">
+                        <select class="form-select" onchange="lotteryRewards[${idx}].sku=this.value">
+                            <option value="">请选择奖励</option>
+                            <option value="66蝉豆" ${item.sku==='66蝉豆'?'selected':''}>66蝉豆</option>
+                            <option value="128蝉豆" ${item.sku==='128蝉豆'?'selected':''}>128蝉豆</option>
+                            <option value="3天专业版会员" ${item.sku==='3天专业版会员'?'selected':''}>3天专业版会员</option>
+                            <option value="30天专业版会员" ${item.sku==='30天专业版会员'?'selected':''}>30天专业版会员</option>
+                        </select>
+                    </div>
+                    <div class="col"><input type="number" class="form-control" placeholder="奖品概率(≤1)" min="0" max="1" step="0.01" value="${item.prob}" onchange="lotteryRewards[${idx}].prob=this.value"></div>
+                    <div class="col"><input type="number" class="form-control" placeholder="奖品数量" min="1" value="${item.count}" onchange="lotteryRewards[${idx}].count=this.value"></div>
+                    <div class="col-auto">${lotteryRewards.length>1?`<button type=\"button\" class=\"btn btn-danger btn-sm\" onclick=\"removeLotteryReward(${idx})\">删除</button>`:''}</div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+        window.removeLotteryReward = function(idx) {
+            lotteryRewards.splice(idx,1);
+            renderLotteryRewards();
+        }
+        document.addEventListener('click', function(e){
+            if(e.target && e.target.id==='addLotteryReward'){
+                if(lotteryRewards.length<6){
+                    lotteryRewards.push({sku:'',prob:'',count:''});
+                    renderLotteryRewards();
+                }
+            }
+        });
+
+        // 活动数据管理
+        let activities = [
+            {
+                id: 10001,
+                title: '新用户注册抽奖',
+                userType: '全部用户',
+                channels: '全平台',
+                timeStart: '2025-05-01T00:00',
+                timeEnd: '2025-05-31T23:59',
+                status: '上架',
+            },
+            {
+                id: 10002,
+                title: '会员签到送豆',
+                userType: '非企业版用户',
+                channels: 'web, ios',
+                timeStart: '2025-06-01T00:00',
+                timeEnd: '2025-06-30T23:59',
+                status: '下架',
+            }
+        ];
+        let nextId = 10003;
+        // 状态渲染
+        function getStatusText(act) {
+            if(act.status === '上架') {
+                const now = new Date();
+                const start = new Date(act.timeStart);
+                const end = new Date(act.timeEnd);
+                if(now < start) return '<span class="badge bg-warning text-dark">上架待开始</span>';
+                if(now > end) return '<span class="badge bg-secondary">上架已过期</span>';
+                if(now >= start && now <= end) return '<span class="badge bg-success">上架进行中</span>';
+                return '<span class="badge bg-success">上架</span>';
+            }
+            if(act.status === '待上架') return '<span class="badge bg-info text-dark">待上架</span>';
+            if(act.status === '下架') return '<span class="badge bg-danger">下架</span>';
+            return '';
+        }
+        // 按钮渲染
+        function getActionBtns(act, idx) {
+            if(act.status === '待上架') {
+                return `<button class="btn btn-outline-success btn-sm me-1" onclick="showConfirm('up',${idx})">上架</button>
+                        <button class="btn btn-outline-warning btn-sm me-1" onclick="editActivity(${idx})">编辑</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteActivity(${idx})">删除</button>`;
+            }
+            if(act.status === '上架') {
+                return `<button class="btn btn-outline-secondary btn-sm me-1" onclick="showConfirm('down',${idx})">下架</button>
+                        <button class="btn btn-outline-warning btn-sm me-1" onclick="editActivity(${idx})">编辑</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteActivity(${idx})">删除</button>`;
+            }
+            if(act.status === '下架') {
+                return `<button class="btn btn-outline-success btn-sm me-1" onclick="showConfirm('up',${idx})">上架</button>
+                        <button class="btn btn-outline-warning btn-sm me-1" onclick="editActivity(${idx})">编辑</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteActivity(${idx})">删除</button>`;
+            }
+            return '';
+        }
+        // 实现前端筛选逻辑
+        let filter = {
+            id: '',
+            title: '',
+            timeStart: '',
+            timeEnd: '',
+            status: ''
+        };
+        function filterActivities() {
+            return activities.filter(act => {
+                // ID精确
+                if(filter.id && !(`#${act.id}`.includes(filter.id))) return false;
+                // 名称模糊
+                if(filter.title && !act.title.includes(filter.title)) return false;
+                // 时间范围
+                if(filter.timeStart) {
+                    const actStart = act.timeStart.split('T')[0];
+                    if(actStart < filter.timeStart) return false;
+                }
+                if(filter.timeEnd) {
+                    const actEnd = act.timeEnd.split('T')[0];
+                    if(actEnd > filter.timeEnd) return false;
+                }
+                // 状态
+                if(filter.status) {
+                    const statusText = getStatusText(act).replace(/<[^>]+>/g, '');
+                    if(statusText !== filter.status) return false;
+                }
+                return true;
+            });
+        }
+        // 修改renderTable，支持筛选
+        function renderTable() {
+            const tbody = document.getElementById('activityTableBody');
+            const filtered = filterActivities();
+            tbody.innerHTML = filtered.map((act, idx) => `
+                <tr>
+                    <td>#${act.id}</td>
+                    <td>${act.title}</td>
+                    <td>${(act.types||[]).map(t=>t==="lottery"?"抽奖转盘":"签到").join(', ')}</td>
+                    <td>${act.userType}</td>
+                    <td>${act.channels}</td>
+                    <td>${act.timeStart.replace('T',' ')} ~ ${act.timeEnd.replace('T',' ')}</td>
+                    <td>${getStatusText(act)}</td>
+                    <td>${getActionBtns(act, activities.indexOf(act))}</td>
+                </tr>
+            `).join('');
+        }
+        // 绑定筛选事件
+        const filterForm = document.getElementById('filterForm');
+        document.getElementById('filterBtn').onclick = function() {
+            filter.id = document.getElementById('filterId').value.trim();
+            filter.title = document.getElementById('filterTitle').value.trim();
+            filter.timeStart = document.getElementById('filterTimeStart').value;
+            filter.timeEnd = document.getElementById('filterTimeEnd').value;
+            filter.status = document.getElementById('filterStatus').value;
+            renderTable();
+        };
+        document.getElementById('resetFilterBtn').onclick = function() {
+            filter = {id:'',title:'',timeStart:'',timeEnd:'',status:''};
+            filterForm.reset();
+            renderTable();
+        };
+        // 首次渲染
+        renderTable();
+        // 初始化数据补充types和channels字段
+        activities = activities.map(a=>({
+            ...a,
+            types: a.types || (a.title.includes('抽奖') ? ['lottery'] : a.title.includes('签到') ? ['checkin'] : []),
+            channels: a.channels || '',
+        }));
+
+        document.getElementById('activityModal').addEventListener('show.bs.modal', function () {
+            // 重置奖励数据
+            checkinRewards = [{sku:'',days:''}];
+            lotteryRewards = [{sku:'',prob:'',count:''}];
+            renderRewardConfig();
+            // 重新绑定活动类型复选框事件，确保每次都能触发奖励区块渲染
+            document.getElementById('type_lottery').onchange = renderRewardConfig;
+            document.getElementById('type_checkin').onchange = renderRewardConfig;
+            if(document.getElementById('type_fission'))
+                document.getElementById('type_fission').onchange = renderRewardConfig;
+        });
+
+        let currentActivityType = 'reward'; // 默认活动类型为奖励领取落地页
+
+        function selectActivityType(type) {
+            currentActivityType = type;
+            // 更新选中状态
+            document.querySelectorAll('.activity-type-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        function confirmActivityType() {
+            const typeModal = bootstrap.Modal.getInstance(document.getElementById('activityTypeModal'));
+            typeModal.hide();
+            
+            if (currentActivityType === 'checkin') {
+                alert('签到活动功能开发中...');
+                return;
+            }
+            
+            // 显示活动配置弹窗
+            const configModal = new bootstrap.Modal(document.getElementById('activityModal'));
+            configModal.show();
+        }
+
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = {
+                type: currentActivityType,
+                title: document.getElementById('activityTitle').value,
+                route: document.getElementById('activityRoute').value,
+                user: document.getElementById('activityUser').value,
+                channels: Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value),
+                reward: document.getElementById('rewardSelect').value,
+                componentStyle: document.getElementById('componentStyle').value,
+                buttonText: document.getElementById('buttonText').value,
+                claimRule: document.getElementById('claimRule').value
+            };
+            
+            console.log('活动配置数据：', formData);
+            alert('保存成功！');
+            bootstrap.Modal.getInstance(document.getElementById('activityModal')).hide();
+            this.reset();
+        });
+
+        // 监听组件样式选择变化
+        document.getElementById('componentStyle').addEventListener('change', function() {
+            const buttonConfig = document.getElementById('buttonConfig');
+            if (this.value === '领取按钮') {
+                buttonConfig.style.display = 'block';
+            } else {
+                buttonConfig.style.display = 'none';
+            }
+        });
+
+        // 初始化时检查组件样式
+        document.addEventListener('DOMContentLoaded', function() {
+            const componentStyle = document.getElementById('componentStyle');
+            const buttonConfig = document.getElementById('buttonConfig');
+            if (componentStyle && componentStyle.value === '领取按钮') {
+                buttonConfig.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 
